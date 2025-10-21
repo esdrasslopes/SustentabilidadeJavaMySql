@@ -25,17 +25,22 @@ public class PontoColetaRepositorio implements RepositorioPontoColeta {
     @Override
     public List<PontoColeta> buscarPontosColetaProximos(double usuarioLatitude, double usuarioLongitude) {
         String sql = """
-                SELECT *,
-                (
-                  6371 * acos(
-                    cos(radians(?)) * cos(radians(latitude)) *
-                    cos(radians(longitude) - radians(?)) +
-                    sin(radians(?)) * sin(radians(latitude))
-                  )
-                ) AS distance_km
-                FROM ponto_de_coleta
-                HAVING distance_km <= 10
+                    SELECT 
+                        p.*,
+                        e.nome AS nome_empresa,
+                        (
+                            6371 * acos(
+                                cos(radians(?)) * cos(radians(p.latitude)) *
+                                cos(radians(p.longitude) - radians(?)) +
+                                sin(radians(?)) * sin(radians(p.latitude))
+                            )
+                        ) AS distance_km
+                    FROM ponto_de_coleta p
+                    JOIN empresa e ON e.cnpj = p.empresa_cnpj
+                    HAVING distance_km <= 10
+                    ORDER BY distance_km ASC;
                 """;
+
 
         List<PontoColeta> pontosColeta = new ArrayList<PontoColeta>();
 
@@ -52,8 +57,9 @@ public class PontoColetaRepositorio implements RepositorioPontoColeta {
                 String nome = resultado.getString("nome");
                 double longitude = resultado.getDouble("longitude");
                 double latitude = resultado.getDouble("latitude");
+                String nomeEmpresa = resultado.getString("nome_empresa");
 
-                PontoColeta p = new PontoColeta(id, nome, latitude, longitude);
+                PontoColeta p = new PontoColeta(id, nome, latitude, longitude, nomeEmpresa);
 
                 pontosColeta.add(p);
             }
